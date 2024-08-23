@@ -19,19 +19,12 @@ const MOTION_BLUR_AMOUNT = 0.725
 
 const vertexShader = `
 varying vec2 vUv;
-void main() {
-    vUv=uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1);
-}
-`
+varying float vPattern;
 
-const fragmentShader = `
-varying vec2 vUv;
 uniform float uTime;
 
 #define PI 3.14159265358979
 
-int windows = 0;
 vec2 m = vec2(.7,.8);
 
 float hash( in vec2 p ) 
@@ -45,16 +38,6 @@ vec2 hash2(vec2 p)
 	return vec2(hash(p*.754),hash(1.5743*p.yx+4.5891))-.5;
 }
 
-vec2 hash2b( vec2 p )
-{
-    vec2 q = vec2( dot(p,vec2(127.1,311.7)), 
-				   dot(p,vec2(269.5,183.3)) );
-	return fract(sin(q)*43758.5453)-.5;
-}
-
-
-mat2 m2= mat2(.8,.6,-.6,.8);
-
 // Gabor/Voronoi mix 3x3 kernel (some artifacts for v=1.)
 float gavoronoi3(in vec2 p)
 {    
@@ -63,7 +46,7 @@ float gavoronoi3(in vec2 p)
     float f = 3.*PI;//frequency
     float v = 1.0;//cell variability <1.
     float dv = 0.0;//direction variability <1.
-    vec2 dir = m + uTime;//vec2(.7,.7);
+    vec2 dir = m + cos(uTime);//vec2(.7,.7);
     float va = 0.0;
    	float wt = 0.0;
     for (int i=-1; i<=1; i++) 
@@ -100,9 +83,62 @@ vec3 nor(in vec2 p)
 }
 
 void main() {
+    
+
     vec3 light = normalize(vec3(3., 2., -1.));
-	float r = dot(nor(vUv), light);
-    gl_FragColor = vec4(vec3(r), 1);
+	float r = dot(nor(uv), light);
+
+    vec3 newPosition = position + normal * clamp(r, 0.0, 0.2);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1);
+    
+    vUv = uv;
+    vPattern = r;
+}
+`
+
+const fragmentShader = `
+varying vec2 vUv;
+varying float vPattern;
+
+struct Color { 
+    vec3 c;
+    float position; //range from 0 to 1
+};
+
+#define COLOR_RAMP(inputColors, inputPosition, finalColor) { \
+    int index = 0; \
+    for(int i = 0; i < inputColors.length() - 1; i++){ \
+       Color currentColor = inputColors[i]; \
+       Color nextColor = inputColors[i + 1]; \
+       bool pointExists = currentColor.position <= inputPosition && inputPosition <= nextColor.position; \
+       index = pointExists ? i : index; \
+    } \
+    Color currentColor = inputColors[index]; \
+    Color nextColor = inputColors[index + 1]; \
+    vec3 c1 = currentColor.c; \
+    vec3 c2 = nextColor.c; \
+    float range = nextColor.position - currentColor.position; \
+    float lerpFactor = (inputPosition - currentColor.position) / range; \
+    finalColor = mix(c1, c2, lerpFactor); \
+} \
+
+void main() {
+    /* 
+        used to be :
+
+        vec3 light = normalize(vec3(3., 2., -1.));
+        float r = dot(nor(vUv), light);
+        gl_FragColor = vec4(vec3(r), 1);
+    */
+    vec3 color;
+
+    Color[3] colors = Color[](
+        Color(vec3(0), 0.0),
+        Color(vec3(0, 1, 0), 0.5),
+        Color(vec3(1), 1.0)
+    );
+    COLOR_RAMP(colors, vPattern, color);
+    gl_FragColor = vec4(color, 1);
 }
 `
 
@@ -115,7 +151,7 @@ export const Scene = () => {
   
   // Animation for icosahedron
   useFrame(( state ) => {
-    const t = state.clock.getElapsedTime() / 10
+    const t = state.clock.getElapsedTime()
 
     if (icoRef.current) {
         const material = icoRef.current.material as THREE.ShaderMaterial
