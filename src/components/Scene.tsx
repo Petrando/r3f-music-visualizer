@@ -82,13 +82,11 @@ vec3 nor(in vec2 p)
 		1.0));
 }
 
-void main() {
-    
-
+void main() {    
     vec3 light = normalize(vec3(3., 2., -1.));
 	float r = dot(nor(uv), light);
 
-    vec3 newPosition = position + normal * clamp(r, 0.0, 0.2);
+    vec3 newPosition = position + normal * clamp(1.0 - r, 0.0, 0.2);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1);
     
     vUv = uv;
@@ -99,6 +97,7 @@ void main() {
 const fragmentShader = `
 varying vec2 vUv;
 varying float vPattern;
+uniform float uTime;
 
 struct Color { 
     vec3 c;
@@ -123,16 +122,16 @@ struct Color {
 } \
 
 void main() {
-    /* 
-        used to be :
-
-        vec3 light = normalize(vec3(3., 2., -1.));
-        float r = dot(nor(vUv), light);
-        gl_FragColor = vec4(vec3(r), 1);
-    */
+    float time = uTime;
     vec3 color;
 
     vec3 mainColor = vec3(0.1, 0.4, 0.9);
+
+    mainColor.r *= 0.9 + sin(time) / 3.2;
+    mainColor.g *= 1.1 + cos(time / 2.0) / 2.5;
+    mainColor.b *= 0.8 + cos(time / 5.0) / 4.0;
+
+    mainColor.rgb += 0.1;
 
     Color[4] colors = Color[](
         Color(vec3(1), 0.0),
@@ -164,6 +163,7 @@ export const Scene = () => {
     }
   })
 
+  const WIREFRAME_DELTA = 0.015
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -177,6 +177,14 @@ export const Scene = () => {
             uniforms={uniforms}
         />
       </mesh>
+      <lineSegments scale={1 + WIREFRAME_DELTA}>
+        <sphereGeometry args={[1, 100, 100]} />
+        <shaderMaterial 
+            vertexShader={vertexShader}
+            fragmentShader={fragmentShader}
+            uniforms={uniforms}
+        />
+      </lineSegments>
 
       {/*<EffectComposer>
         <R3FShaderPass attachArray="passes" args={[new RenderPass(scene, camera)]} />
