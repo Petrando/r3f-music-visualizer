@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { extend, useFrame, useThree } from '@react-three/fiber'
 import { Icosahedron } from '@react-three/drei'
 import { BlendShader } from 'three/examples/jsm/shaders/BlendShader.js'
@@ -26,6 +27,8 @@ void main() {
 
 const fragmentShader = `
 varying vec2 vUv;
+uniform float uTime;
+
 #define PI 3.14159265358979
 
 int windows = 0;
@@ -60,7 +63,7 @@ float gavoronoi3(in vec2 p)
     float f = 3.*PI;//frequency
     float v = 1.0;//cell variability <1.
     float dv = 0.0;//direction variability <1.
-    vec2 dir = m;//vec2(.7,.7);
+    vec2 dir = m + uTime;//vec2(.7,.7);
     float va = 0.0;
    	float wt = 0.0;
     for (int i=-1; i<=1; i++) 
@@ -105,10 +108,18 @@ void main() {
 
 export const Scene = () => {
   const icoRef = useRef<THREE.Mesh>(null)
+
+  const uniforms: { [uniform: string]: THREE.IUniform<any> } = useMemo(() => ({
+    uTime: { value: 0 },
+}), []);
   
   // Animation for icosahedron
-  useFrame(() => {
+  useFrame(( state ) => {
+    const t = state.clock.getElapsedTime() / 10
+
     if (icoRef.current) {
+        const material = icoRef.current.material as THREE.ShaderMaterial
+        material.uniforms.uTime.value = t
       //icoRef.current.rotation.x += ROTATION_SPEED
       //icoRef.current.rotation.y += ROTATION_SPEED
     }
@@ -124,6 +135,7 @@ export const Scene = () => {
         <shaderMaterial 
             vertexShader={vertexShader}
             fragmentShader={fragmentShader}
+            uniforms={uniforms}
         />
       </mesh>
 
