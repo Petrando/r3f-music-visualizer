@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useRef, useMemo, useEffect, useState } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { EffectComposer, /*ShaderPass as R3FShaderPass*/ } from '@react-three/postprocessing'
+import { useFrame } from '@react-three/fiber'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from "three"
 import gsap from 'gsap'
 import { useControls } from 'leva'
@@ -54,19 +54,22 @@ export class Visualizer {
         const freq = Math.max(this.getFrequency() - 100, 0) / 50
 
         const material = this.mesh.material as THREE.ShaderMaterial
-        material.uniforms[this.frequencyUniformName].value = freq
+        //material.uniforms[this.frequencyUniformName].value = freq
+        const freqUniform = material.uniforms[this.frequencyUniformName]
+        gsap.to(freqUniform, {
+            duration: 1.5,
+            ease: 'Slow.easeOut',
+            value: freq
+        })
+        //freqUniform.value = freq
         /*
         const freq = Math.max(this.getFrequency() - 10, 0) / 50
     
         // Update the frequency uniform with a smooth animation using GSAP
         const material = this.mesh.material as THREE.ShaderMaterial
-        const freqUniform = material.uniforms[this.frequencyUniformName]
-    
-        gsap.to(freqUniform, {
-            duration: 1.5,
-            ease: 'Slow.easeOut',
-            value: freq
-        })*/
+        const freqUniform = material.uniforms[this.frequencyUniformName]    
+        */
+       return freq;
     }
 }
 
@@ -90,7 +93,13 @@ export const Scene = () => {
             material.uniforms.uTime.value = t
         }
         if(visualizer !== null){
-            visualizer.update()
+            const freq = visualizer.update()
+
+            /*
+            softGlitch.factor = freq > 0.6?0.7:0.1;
+
+            the above line is how to use in threeJs, figure out how to do in r3f
+            */
         }        
     })    
 
@@ -112,28 +121,36 @@ export const Scene = () => {
     
     const WIREFRAME_DELTA = 0.015
     return (
-        <group >
-            <ambientLight intensity={0.5} />
-            <directionalLight intensity={1} position={[0, 10, 10]} /> 
+        <>
+            <group >
+                <ambientLight intensity={0.5} />
+                <directionalLight intensity={1} position={[0, 10, 10]} /> 
 
-            <mesh ref={icoRef} >
-                <sphereGeometry args={[1, 100, 100]} />
-                <shaderMaterial 
-                    vertexShader={vertexShader}
-                    fragmentShader={fragmentShader}
-                    uniforms={uniforms}
+                <mesh ref={icoRef} >
+                    <sphereGeometry args={[1, 100, 100]} />
+                    <shaderMaterial 
+                        vertexShader={vertexShader}
+                        fragmentShader={fragmentShader}
+                        uniforms={uniforms}
+                    />
+                </mesh>
+                <lineSegments scale={1 + WIREFRAME_DELTA}>
+                    <sphereGeometry args={[1, 100, 100]} />
+                    <shaderMaterial 
+                        vertexShader={vertexShader}
+                        fragmentShader={fragmentShader}
+                        uniforms={uniforms}
+                    />
+                </lineSegments>    
+            </group>
+            <EffectComposer>
+                <Bloom
+                    intensity={0.5} // similar to strength
+                    luminanceThreshold={0.0001} // similar to threshold
+                    luminanceSmoothing={0.01}  // similar to radius
+                    height={300} // adjust based on resolution
                 />
-            </mesh>
-            <lineSegments scale={1 + WIREFRAME_DELTA}>
-                <sphereGeometry args={[1, 100, 100]} />
-                <shaderMaterial 
-                    vertexShader={vertexShader}
-                    fragmentShader={fragmentShader}
-                    uniforms={uniforms}
-                />
-            </lineSegments>            
-            {/*<EffectComposer>        
-            </EffectComposer>*/}
-        </group>
+            </EffectComposer>
+        </>
     )
 }
