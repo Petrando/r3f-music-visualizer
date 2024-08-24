@@ -2,6 +2,7 @@ export const vertexShader = `
 varying vec2 vUv;
 varying float vPattern;
 
+uniform float uAudioFrequency;
 uniform float uTime;
 
 #define PI 3.14159265358979
@@ -19,15 +20,26 @@ vec2 hash2(vec2 p)
 	return vec2(hash(p*.754),hash(1.5743*p.yx+4.5891))-.5;
 }
 
+float easeInQuint(float x) {
+    return pow(x, 5.0);
+}
+
 // Gabor/Voronoi mix 3x3 kernel (some artifacts for v=1.)
 float gavoronoi3(in vec2 p)
-{    
+{   
+    //final 
+    float time = uTime;
+    float timeAdd = mix(1.0, 3.0, easeInQuint(uAudioFrequency));
+    time += timeAdd;
+    //final
+
     vec2 ip = floor(p);
     vec2 fp = fract(p);
     float f = 3.*PI;//frequency
     float v = 1.0;//cell variability <1.
     float dv = 0.0;//direction variability <1.
-    vec2 dir = m + cos(uTime);//vec2(.7,.7);
+
+    vec2 dir = vec2(1.3) + cos(time);//m + cos(uTime);//vec2(.7,.7);
     float va = 0.0;
    	float wt = 0.0;
     for (int i=-1; i<=1; i++) 
@@ -67,7 +79,8 @@ void main() {
     vec3 light = normalize(vec3(3., 2., -1.));
 	float r = dot(nor(uv), light);
 
-    vec3 newPosition = position + normal * clamp(1.0 - r, 0.0, 0.2);
+    float displacement = clamp(1.0 - r, 0.0, 0.2) + uAudioFrequency / 2.;
+    vec3 newPosition = position + normal * displacement;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1);
     
     vUv = uv;

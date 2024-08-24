@@ -41,7 +41,7 @@ export class Visualizer {
         this.loader.load(path, (buffer) => {
             this.sound.setBuffer(buffer)
             this.sound.setLoop(true)
-            this.sound.setVolume(0.025)
+            this.sound.setVolume(0.5)
             this.sound.play()
         })
     }
@@ -51,8 +51,10 @@ export class Visualizer {
     }
   
     update() {
-        const freq = this.getFrequency()
-        console.log(freq)
+        const freq = Math.max(this.getFrequency() - 100, 0) / 50
+
+        const material = this.mesh.material as THREE.ShaderMaterial
+        material.uniforms[this.frequencyUniformName].value = freq
         /*
         const freq = Math.max(this.getFrequency() - 10, 0) / 50
     
@@ -101,7 +103,7 @@ export const Scene = () => {
     
     const startVisualizer = () => {
         if (icoRef.current && !visualizer) {
-            const vis = new Visualizer(icoRef.current, 'newAudioFrequency')
+            const vis = new Visualizer(icoRef.current, 'uAudioFrequency')
             vis.load(TRACK)
             setVisualizer(vis)
             //vis.update()
