@@ -93,7 +93,7 @@ export const Scene = () => {
             material.uniforms.uTime.value = t
         }
         if(visualizer !== null){
-            const freq = visualizer.update()
+            //const freq = visualizer.update()
 
             /*
             softGlitch.factor = freq > 0.6?0.7:0.1;
