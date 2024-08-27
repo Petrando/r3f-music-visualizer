@@ -9,7 +9,9 @@ import { useControls } from 'leva'
 import { vertexShader } from '../shaders/vertexShader'
 import { fragmentShader } from '../shaders/fragmentShader'
 
-import TRACK from "../sounds/fire.mp3"
+import TRACK1 from "../sounds/fire.mp3"
+import TRACK2 from "../sounds/Satara - The Game.mp3"
+import TRACK3 from "../sounds/2 UNLIMITED - No Limit.mp3"
 
 export class Visualizer {
     mesh: THREE.Mesh
@@ -41,10 +43,14 @@ export class Visualizer {
         this.loader.load(path, (buffer) => {
             this.sound.setBuffer(buffer)
             this.sound.setLoop(true)
-            this.sound.setVolume(0.5)
+            this.sound.setVolume(0.5)            
             this.sound.play()
         })
     }
+
+    stopSong(){
+        this.sound.stop()
+    }    
   
     getFrequency(): number {
         return this.analyser.getAverageFrequency()
@@ -83,39 +89,53 @@ export const Scene = () => {
     const uniforms: { [uniform: string]: THREE.IUniform<any> } = useMemo(() => ({
         uTime: { value: 0 },
     }), []);
-    
+        
     // Animation for icosahedron
     useFrame(( state ) => {
         const t = state.clock.getElapsedTime()
 
         if (icoRef.current) {
             const material = icoRef.current.material as THREE.ShaderMaterial
+                        
             material.uniforms.uTime.value = t
+
+            if(visualizer !== null){
+                const freq = visualizer.update()
+            
+                //material.uniforms.uTime.value = freq > 0?t:t/10
+                /*
+                softGlitch.factor = freq > 0.6?0.7:0.1;
+    
+                the above line is how to use in threeJs, figure out how to do in r3f
+                */
+            }  
         }
-        if(visualizer !== null){
-            //const freq = visualizer.update()
-
-            /*
-            softGlitch.factor = freq > 0.6?0.7:0.1;
-
-            the above line is how to use in threeJs, figure out how to do in r3f
-            */
-        }        
+              
     })    
 
     useEffect(()=>{
+        
         if(audioControl){
-            startVisualizer()
+            if(visualizer === null){
+                startVisualizer()
+            }
+        }else{
+            if(visualizer !== null){                
+                visualizer.stopSong()
+                setVisualizer(null)
+            }
         }
+            
 
     }, [audioControl, icoRef, visualizer])
     
     const startVisualizer = () => {
         if (icoRef.current && !visualizer) {
             const vis = new Visualizer(icoRef.current, 'uAudioFrequency')
-            vis.load(TRACK)
+            vis.load(TRACK2)
             setVisualizer(vis)
             //vis.update()
+            //vis.playSong()
         }
     }
     
