@@ -90,17 +90,19 @@ export const Scene = () => {
         uTime: { value: 0 },
     }), []);
         
-    // Animation for icosahedron
+    // Animation for icosahedron        
+
     useFrame(( state ) => {
         const t = state.clock.getElapsedTime()
 
         if (icoRef.current) {
             const material = icoRef.current.material as THREE.ShaderMaterial
-                        
-            material.uniforms.uTime.value = t
-
+                                    
             if(visualizer !== null){
-                const freq = visualizer.update()
+                const freq = visualizer.getFrequency()                
+                if(freq > 0){
+                    material.uniforms.uTime.value = t
+                }
             
                 //material.uniforms.uTime.value = freq > 0?t:t/10
                 /*
@@ -108,13 +110,14 @@ export const Scene = () => {
     
                 the above line is how to use in threeJs, figure out how to do in r3f
                 */
+            }else {
+                material.uniforms.uTime.value = t/10
             }  
         }
               
     })    
 
-    useEffect(()=>{
-        
+    useEffect(()=>{        
         if(audioControl){
             if(visualizer === null){
                 startVisualizer()
@@ -124,9 +127,7 @@ export const Scene = () => {
                 visualizer.stopSong()
                 setVisualizer(null)
             }
-        }
-            
-
+        }            
     }, [audioControl, icoRef, visualizer])
     
     const startVisualizer = () => {
@@ -134,8 +135,6 @@ export const Scene = () => {
             const vis = new Visualizer(icoRef.current, 'uAudioFrequency')
             vis.load(TRACK2)
             setVisualizer(vis)
-            //vis.update()
-            //vis.playSong()
         }
     }
     
