@@ -11,7 +11,6 @@ import { fragmentShader } from '../shaders/fragmentShader'
 
 import TRACK1 from "../sounds/fire.mp3"
 import TRACK2 from "../sounds/Satara - The Game.mp3"
-import TRACK3 from "../sounds/2 UNLIMITED - No Limit.mp3"
 
 export class Visualizer {
     mesh: THREE.Mesh
@@ -83,9 +82,14 @@ export const Scene = () => {
     const icoRef = useRef<THREE.Mesh>(null)
     const [visualizer, setVisualizer] = useState<Visualizer | null>(null)
 
-    const { audioControl } = useControls({         
-        audioControl: { value: false, label: 'Play Song' }    
-    })
+    const songOptions = ['fire', 'Satara - The Game'] 
+    const [{ audioControl, selectSong }, set] = useControls(()=>({         
+        audioControl: { value: false, label: 'Play Song' },
+        selectSong: { 
+            value: 'fire', 
+            options: songOptions
+        },    
+    }))
     const uniforms: { [uniform: string]: THREE.IUniform<any> } = useMemo(() => ({
         uTime: { value: 0 },
     }), []);
@@ -115,7 +119,12 @@ export const Scene = () => {
             }  
         }
               
-    })    
+    })
+
+    useEffect(()=>{
+        set({ audioControl: false })
+    }, [selectSong])
+            
 
     useEffect(()=>{        
         if(audioControl){
@@ -128,12 +137,15 @@ export const Scene = () => {
                 setVisualizer(null)
             }
         }            
-    }, [audioControl, icoRef, visualizer])
+    }, [audioControl, icoRef, visualizer, selectSong])
     
-    const startVisualizer = () => {
+    const startVisualizer = () => {        
+        const songIdx = songOptions.findIndex((d) => d.toLowerCase().includes(selectSong.toLowerCase()))
+        
+        const track = songIdx === 0?TRACK1:TRACK2
         if (icoRef.current && !visualizer) {
             const vis = new Visualizer(icoRef.current, 'uAudioFrequency')
-            vis.load(TRACK2)
+            vis.load(track)
             setVisualizer(vis)
         }
     }
