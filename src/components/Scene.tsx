@@ -9,8 +9,8 @@ import { useControls } from 'leva'
 import { vertexShader } from '../shaders/vertexShader'
 import { fragmentShader } from '../shaders/fragmentShader'
 
-import TRACK1 from "../sounds/fire.mp3"
-import TRACK2 from "../sounds/Satara - The Game.mp3"
+import TRACK1 from "/sounds/fire.mp3"
+import TRACK2 from "/sounds/Satara - The Game.mp3"
 
 export class Visualizer {
     mesh: THREE.Mesh
